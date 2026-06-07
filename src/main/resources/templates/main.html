@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamFlix – Watch Movies & TV Shows</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="navbar">
+        <div class="logo">STREAMFLIX</div>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/watchlist.html">Watchlist</a>
+            <a href="/profile.html">Profile</a>
+        </div>
+    </div>
+    <div class="hero">
+        <h1>Unlimited movies, TV shows, and more.</h1>
+        <p>Watch anywhere. Cancel anytime.</p>
+        <button class="btn-primary" onclick="location.href='/subscription.html'">Subscribe Now</button>
+    </div>
+    <div class="video-grid" id="videoGrid"></div>
+    <footer>© 2025 StreamFlix. All rights reserved.</footer>
+    <script src="/js/main.js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = '/login.html';
+        fetch('/api/videos', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        })
+        .then(res => res.json())
+        .then(videos => {
+            const grid = document.getElementById('videoGrid');
+            videos.forEach(v => {
+                grid.innerHTML += `
+                    <div class="video-card" onclick="location.href='/video-details.html?id=${v.videoId}'">
+                        <img src="${v.thumbnailUrl}" alt="${v.title}">
+                        <h3>${v.title}</h3>
+                    </div>`;
+            });
+        });
+    </script>
+</body>
+</html>

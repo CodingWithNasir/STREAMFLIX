@@ -1,0 +1,104 @@
+:root {
+    --primary-red: #e50914;
+    --dark-bg: #000000;
+    --card-bg: #1a1a1a;
+    --text-light: #ffffff;
+    --text-gray: #b3b3b3;
+}
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: var(--dark-bg);
+    color: var(--text-light);
+}
+/* Navbar */
+.navbar {
+    background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+.logo {
+    color: var(--primary-red);
+    font-size: 2rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+.nav-links a {
+    color: var(--text-light);
+    margin-left: 1.5rem;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+.nav-links a:hover { color: var(--primary-red); }
+/* Hero */
+.hero {
+    text-align: center;
+    padding: 6rem 2rem;
+    background: radial-gradient(circle at 30% 20%, #111, var(--dark-bg));
+    border-bottom: 2px solid var(--primary-red);
+}
+.hero h1 { font-size: 3rem; margin-bottom: 1rem; }
+.hero p { font-size: 1.2rem; color: var(--text-gray); }
+.btn-primary {
+    background: var(--primary-red);
+    border: none;
+    color: white;
+    padding: 0.7rem 2rem;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.btn-primary:hover { transform: scale(1.02); background: #f40612; }
+/* Video Grid */
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+    padding: 2rem;
+}
+.video-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+    cursor: pointer;
+}
+.video-card:hover { transform: scale(1.05); box-shadow: 0 10px 20px rgba(229,9,20,0.3); }
+.video-card img { width: 100%; height: 120px; object-fit: cover; }
+.video-card h3 { padding: 0.5rem; font-size: 1rem; text-align: center; }
+/* Forms */
+.form-container {
+    max-width: 400px;
+    margin: 4rem auto;
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 12px;
+}
+.form-container h2 { margin-bottom: 1.5rem; color: var(--primary-red); }
+.form-container input {
+    width: 100%;
+    padding: 0.7rem;
+    margin-bottom: 1rem;
+    background: #333;
+    border: none;
+    border-radius: 4px;
+    color: white;
+}
+/* Footer */
+footer {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-gray);
+    border-top: 1px solid #222;
+}
