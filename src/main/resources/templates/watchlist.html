@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Watchlist')}"></head>
+<body class="page">
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="page-main">
+    <section class="section">
+        <div class="container">
+            <p class="eyebrow">Library</p>
+            <h1 class="headline-lg" style="margin-bottom:0.5rem">Watchlist</h1>
+            <p class="body-sm" style="margin-bottom:2rem">Titles you've saved for later delivery.</p>
+            <div class="video-grid" id="watchlistGrid"></div>
+            <div class="loading" id="watchlistLoading">Loading watchlist…</div>
+            <div class="empty-state hidden" id="watchlistEmpty">
+                <p class="mono">Watchlist empty</p>
+                <p class="body-sm">Browse the catalog and save titles to your library.</p>
+                <a href="/" class="btn btn-ghost" style="margin-top:1.5rem;display:inline-flex">Browse Catalog</a>
+            </div>
+        </div>
+    </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:src="@{/js/main.js}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!StreamFlix.requireAuth()) return;
+    const grid = document.getElementById('watchlistGrid');
+    const loading = document.getElementById('watchlistLoading');
+    const empty = document.getElementById('watchlistEmpty');
+    try {
+        const items = await StreamFlix.watchlist.list();
+        loading.classList.add('hidden');
+        if (!items.length) {
+            grid.classList.add('hidden');
+            empty.classList.remove('hidden');
+            return;
+        }
+        items.forEach(v => {
+            const card = StreamFlix.renderVideoCard(v);
+            grid.appendChild(card);
+        });
+    } catch (e) {
+        loading.textContent = 'Failed to load: ' + e.message;
+    }
+});
+</script>
+</body>
+</html>

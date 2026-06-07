@@ -1,45 +1,127 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StreamFlix – Watch Movies & TV Shows</title>
-    <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
-    <div class="navbar">
-        <div class="logo">STREAMFLIX</div>
-        <div class="nav-links">
-            <a href="/">Home</a>
-            <a href="/watchlist.html">Watchlist</a>
-            <a href="/profile.html">Profile</a>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Catalog')}"></head>
+<body class="page page-home">
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="page-main">
+    <!-- Netflix-style featured slider -->
+    <section class="featured-slider" id="featuredSlider" aria-label="Featured titles">
+        <div class="slider-track" id="sliderTrack"></div>
+        <div class="slider-gradient"></div>
+        <div class="slider-content container">
+            <div class="slider-info" id="sliderInfo">
+                <p class="eyebrow" id="sliderEyebrow">Featured</p>
+                <h1 class="headline-xl" id="sliderTitle">Loading…</h1>
+                <p class="body-lg slider-desc" id="sliderDesc"></p>
+                <div class="slider-meta mono" id="sliderMeta"></div>
+                <div class="slider-actions">
+                    <a href="#" class="btn btn-primary" id="sliderPlay">▶ Play</a>
+                    <a href="#" class="btn btn-ghost" id="sliderInfoBtn">More Info</a>
+                </div>
+            </div>
         </div>
-    </div>
-    <div class="hero">
-        <h1>Unlimited movies, TV shows, and more.</h1>
-        <p>Watch anywhere. Cancel anytime.</p>
-        <button class="btn-primary" onclick="location.href='/subscription.html'">Subscribe Now</button>
-    </div>
-    <div class="video-grid" id="videoGrid"></div>
-    <footer>© 2025 StreamFlix. All rights reserved.</footer>
-    <script src="/js/main.js"></script>
-    <script>
-        const token = localStorage.getItem('token');
-        if (!token) window.location.href = '/login.html';
-        fetch('/api/videos', {
-            headers: { 'Authorization': 'Bearer ' + token }
-        })
-        .then(res => res.json())
-        .then(videos => {
-            const grid = document.getElementById('videoGrid');
-            videos.forEach(v => {
-                grid.innerHTML += `
-                    <div class="video-card" onclick="location.href='/video-details.html?id=${v.videoId}'">
-                        <img src="${v.thumbnailUrl}" alt="${v.title}">
-                        <h3>${v.title}</h3>
-                    </div>`;
+        <button class="slider-arrow slider-prev" id="sliderPrev" aria-label="Previous">‹</button>
+        <button class="slider-arrow slider-next" id="sliderNext" aria-label="Next">›</button>
+        <div class="slider-dots" id="sliderDots"></div>
+    </section>
+
+    <section class="section stats-bar">
+        <div class="container">
+            <div class="hero-stats" id="heroStats">
+                <div><div class="stat-value" id="statVideos">—</div><div class="stat-label">Titles</div></div>
+                <div><div class="stat-value" id="statGenres">—</div><div class="stat-label">Genres</div></div>
+                <div><div class="stat-value" id="statPremium">—</div><div class="stat-label">Premium</div></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="continue">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-title">Continue Watching</span>
+            </div>
+            <div class="video-row" id="continueGrid"></div>
+            <div class="empty-state hidden" id="continueEmpty">
+                <p class="mono">No active sessions</p>
+                <p class="body-sm">Start watching to track playback progress.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="catalog">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-title">Content Catalog</span>
+                <span class="body-sm mono" id="catalogCount"></span>
+            </div>
+            <div id="categoryCatalog"></div>
+            <div class="loading" id="catalogLoading">Loading catalog…</div>
+        </div>
+    </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:src="@{/js/main.js}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!StreamFlix.requireAuth()) return;
+
+    const nav = document.querySelector('.site-nav');
+    nav.classList.add('site-nav--overlay');
+    window.addEventListener('scroll', () => {
+        nav.classList.toggle('site-nav--scrolled', window.scrollY > 60);
+    });
+
+    const catEl = document.getElementById('categoryCatalog');
+    const loading = document.getElementById('catalogLoading');
+    try {
+        const [categories, history, allVideos] = await Promise.all([
+            StreamFlix.videos.categories(),
+            StreamFlix.users.history().catch(() => []),
+            StreamFlix.videos.list()
+        ]);
+
+        const featured = [...allVideos]
+            .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+            .slice(0, 6);
+        StreamFlix.initFeaturedSlider(featured);
+
+        loading.classList.add('hidden');
+        let total = 0, premium = 0;
+        const genres = new Set();
+        categories.forEach(cat => {
+            genres.add(cat.name);
+            const block = document.createElement('div');
+            block.className = 'category-block';
+            block.innerHTML = `<div class="section-title">${StreamFlix.formatGenre(cat.name)}</div>`;
+            const row = document.createElement('div');
+            row.className = 'video-row';
+            (cat.children || []).forEach(child => {
+                if (child.video) {
+                    total++;
+                    if (child.video.isPremium) premium++;
+                    row.appendChild(StreamFlix.renderVideoCard(child.video));
+                }
             });
+            block.appendChild(row);
+            catEl.appendChild(block);
         });
-    </script>
+        document.getElementById('statVideos').textContent = total;
+        document.getElementById('statGenres').textContent = genres.size;
+        document.getElementById('statPremium').textContent = premium;
+        document.getElementById('catalogCount').textContent = total + ' titles';
+
+        const continueGrid = document.getElementById('continueGrid');
+        const continueEmpty = document.getElementById('continueEmpty');
+        if (history.length) {
+            history.forEach(v => continueGrid.appendChild(StreamFlix.renderVideoCard(v)));
+        } else {
+            continueGrid.classList.add('hidden');
+            continueEmpty.classList.remove('hidden');
+        }
+    } catch (e) {
+        loading.textContent = 'Failed to load catalog: ' + e.message;
+    }
+});
+</script>
 </body>
 </html>

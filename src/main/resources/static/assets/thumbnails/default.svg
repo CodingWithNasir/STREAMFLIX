@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <rect width="640" height="360" fill="#05513D"/>
+  <rect x="1" y="1" width="638" height="358" fill="none" stroke="#1A191B" stroke-width="2"/>
+  <text x="320" y="175" text-anchor="middle" fill="#F1F1EE" font-family="Georgia, serif" font-size="28" font-style="italic">StreamFlix</text>
+  <rect x="280" y="200" width="80" height="4" fill="#8FFE09"/>
+</svg>

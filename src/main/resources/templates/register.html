@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Create Account')}"></head>
+<body class="page">
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="auth-page">
+    <div class="auth-card">
+        <p class="eyebrow">Registration</p>
+        <h1 class="headline-md">Create your account</h1>
+        <p class="body-sm">Deploy your streaming workspace in minutes.</p>
+        <form id="registerForm" style="margin-top:2rem">
+            <div class="form-group">
+                <label class="form-label" for="name">Full Name</label>
+                <input class="form-input" type="text" id="name" required placeholder="Jane Smith">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="email">Email</label>
+                <input class="form-input" type="email" id="email" required placeholder="you@company.com">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <input class="form-input" type="password" id="password" required minlength="6" placeholder="Min. 6 characters">
+            </div>
+            <div class="form-error hidden" id="registerError"></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:0.5rem">Create Account</button>
+        </form>
+        <div class="form-footer">
+            Already have an account? <a href="/login">Sign in</a>
+        </div>
+    </div>
+</main>
+<script th:src="@{/js/main.js}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    StreamFlix.requireGuest();
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const err = document.getElementById('registerError');
+        err.classList.add('hidden');
+        try {
+            const data = await StreamFlix.auth.register(
+                document.getElementById('name').value,
+                document.getElementById('email').value,
+                document.getElementById('password').value
+            );
+            StreamFlix.setAuth(data.token, data.user);
+            window.location.href = '/subscription';
+        } catch (ex) {
+            StreamFlix.showError(err, ex.message);
+        }
+    });
+});
+</script>
+</body>
+</html>

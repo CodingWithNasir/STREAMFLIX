@@ -1,32 +1,54 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>StreamFlix – Login</title>
-    <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
-    <div class="form-container">
-        <h2>Sign In</h2>
-        <input type="email" id="email" placeholder="Email">
-        <input type="password" id="password" placeholder="Password">
-        <button class="btn-primary" onclick="login()">Login</button>
-        <p>New user? <a href="/register.html">Register now</a></p>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Sign In')}"></head>
+<body class="page">
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="auth-page">
+    <div class="auth-card">
+        <p class="eyebrow">Authentication</p>
+        <h1 class="headline-md">Sign in to StreamFlix</h1>
+        <p class="body-sm">Access your catalog, watchlist, and streaming infrastructure.</p>
+        <form id="loginForm" style="margin-top:2rem">
+            <div class="form-group">
+                <label class="form-label" for="email">Email</label>
+                <input class="form-input" type="email" id="email" required autocomplete="email" placeholder="you@company.com">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <input class="form-input" type="password" id="password" required autocomplete="current-password" placeholder="••••••••">
+            </div>
+            <div class="form-error hidden" id="loginError"></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:0.5rem">Sign In</button>
+        </form>
+        <div class="form-footer">
+            <a href="/forgot-password">Forgot password?</a><br>
+            <span style="margin-top:0.5rem;display:inline-block">New user? <a href="/register">Create account</a></span>
+        </div>
+        <p class="body-sm mono" style="margin-top:1.5rem;text-align:center;color:var(--color-gray-600)">
+            Demo: alice@example.com / alice123
+        </p>
     </div>
-    <script>
-        async function login() {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
-            const data = await res.json();
-            if (data.token) {
-                localStorage.setItem('token', data.token);
-                window.location.href = '/';
-            } else alert('Login failed');
+</main>
+<script th:src="@{/js/main.js}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    StreamFlix.requireGuest();
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const err = document.getElementById('loginError');
+        err.classList.add('hidden');
+        try {
+            const data = await StreamFlix.auth.login(
+                document.getElementById('email').value,
+                document.getElementById('password').value
+            );
+            StreamFlix.setAuth(data.token, data.user);
+            window.location.href = '/';
+        } catch (ex) {
+            StreamFlix.showError(err, ex.message);
         }
-    </script>
+    });
+});
+</script>
 </body>
 </html>

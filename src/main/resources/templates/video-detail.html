@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Video')}"></head>
+<body class="page">
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="page-main">
+    <section class="section">
+        <div class="container">
+            <p class="eyebrow"><a href="/">← Catalog</a></p>
+            <div class="video-detail-hero" id="detailContent">
+                <div>
+                    <div class="player-wrap">
+                        <video id="player" controls playsinline></video>
+                    </div>
+                    <div class="player-controls">
+                        <button class="btn btn-sm" id="btnPlay">Play</button>
+                        <button class="btn btn-sm btn-ghost" id="btnPause">Pause</button>
+                        <select class="form-select quality-select" id="qualitySelect">
+                            <option value="SD">SD</option>
+                            <option value="HD" selected>HD</option>
+                            <option value="FULL_HD">Full HD</option>
+                            <option value="ULTRA_HD">Ultra HD</option>
+                        </select>
+                        <button class="btn btn-sm btn-ghost" id="btnWatchlist">+ Watchlist</button>
+                    </div>
+                    <h1 class="headline-lg" id="videoTitle">—</h1>
+                    <p class="detail-description" id="videoDesc"></p>
+                </div>
+                <aside class="detail-meta" id="videoMeta"></aside>
+            </div>
+            <div class="loading" id="detailLoading">Loading…</div>
+            <div class="form-error hidden" id="detailError"></div>
+        </div>
+    </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:src="@{/js/main.js}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!StreamFlix.requireAuth()) return;
+    const videoId = window.location.pathname.split('/').pop();
+    const player = document.getElementById('player');
+    const loading = document.getElementById('detailLoading');
+    let video = null;
+    let inWatchlist = false;
+
+    try {
+        video = await StreamFlix.videos.get(videoId);
+        inWatchlist = video.inWatchlist;
+        loading.classList.add('hidden');
+        document.getElementById('videoTitle').textContent = video.title;
+        document.getElementById('videoDesc').textContent = video.description || '';
+        document.getElementById('videoMeta').innerHTML = `
+            <div class="detail-row"><span>Genre</span><span>${StreamFlix.formatGenre(video.genre)}</span></div>
+            <div class="detail-row"><span>Type</span><span>${video.type.replace('_',' ')}</span></div>
+            <div class="detail-row"><span>Duration</span><span>${StreamFlix.formatDuration(video.durationSeconds)}</span></div>
+            <div class="detail-row"><span>Year</span><span>${video.releaseYear}</span></div>
+            <div class="detail-row"><span>Rating</span><span>${video.rating || '—'}</span></div>
+            <div class="detail-row"><span>Age</span><span>${video.ageRating}</span></div>
+            <div class="detail-row"><span>Tier</span><span>${video.isPremium ? 'Premium' : 'Standard'}</span></div>`;
+        updateWatchlistBtn();
+        await loadStream('HD');
+    } catch (e) {
+        loading.classList.add('hidden');
+        StreamFlix.showError(document.getElementById('detailError'), e.message);
+    }
+
+    async function loadStream(quality) {
+        try {
+            const stream = await StreamFlix.videos.stream(videoId, quality);
+            player.src = stream.streamUrl;
+        } catch (e) {
+            StreamFlix.toast('Stream error: ' + e.message);
+        }
+    }
+
+    function updateWatchlistBtn() {
+        const btn = document.getElementById('btnWatchlist');
+        btn.textContent = inWatchlist ? '− Watchlist' : '+ Watchlist';
+    }
+
+    document.getElementById('qualitySelect').addEventListener('change', (e) => loadStream(e.target.value));
+    document.getElementById('btnPlay').addEventListener('click', async () => {
+        player.play();
+        await StreamFlix.videos.play();
+    });
+    document.getElementById('btnPause').addEventListener('click', async () => {
+        player.pause();
+        await StreamFlix.videos.pause();
+    });
+    document.getElementById('btnWatchlist').addEventListener('click', async () => {
+        try {
+            if (inWatchlist) {
+                await StreamFlix.watchlist.remove(videoId);
+                inWatchlist = false;
+                StreamFlix.toast('Removed from watchlist');
+            } else {
+                await StreamFlix.watchlist.add(videoId);
+                inWatchlist = true;
+                StreamFlix.toast('Added to watchlist');
+            }
+            updateWatchlistBtn();
+        } catch (e) { StreamFlix.toast(e.message); }
+    });
+
+    player.addEventListener('timeupdate', () => {
+        if (!video) return;
+        const completed = player.currentTime >= player.duration - 5;
+        StreamFlix.users.updateHistory(videoId, {
+            progressSeconds: Math.floor(player.currentTime),
+            completed
+        }).catch(() => {});
+    });
+});
+</script>
+</body>
+</html>

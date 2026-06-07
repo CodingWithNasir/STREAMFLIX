@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Plans')}"></head>
+<body class="page">
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="page-main">
+    <section class="hero" style="padding-bottom:2rem">
+        <div class="container">
+            <p class="eyebrow">Pricing</p>
+            <h1 class="headline-xl">Infrastructure plans for every scale.</h1>
+            <p class="body-lg" style="margin-top:1rem">Transparent pricing. No hidden encoding fees. Cancel anytime.</p>
+            <div id="currentSub" class="mono body-sm" style="margin-top:1.5rem"></div>
+        </div>
+    </section>
+    <section class="section">
+        <div class="container">
+            <div class="plans-grid" id="plansGrid"></div>
+            <div class="loading" id="plansLoading">Loading plans…</div>
+        </div>
+    </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:src="@{/js/main.js}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    const grid = document.getElementById('plansGrid');
+    const loading = document.getElementById('plansLoading');
+    let selectedMethod = 'STRIPE';
+
+    if (StreamFlix.getToken()) {
+        try {
+            const sub = await StreamFlix.subscriptions.current();
+            if (sub) {
+                document.getElementById('currentSub').textContent =
+                    `Current plan: ${sub.plan} (${sub.status}) — renews ${sub.endDate}`;
+            }
+        } catch (_) {}
+    }
+
+    try {
+        const plans = await StreamFlix.subscriptions.plans();
+        loading.classList.add('hidden');
+        plans.forEach((plan, i) => {
+            const card = document.createElement('div');
+            card.className = 'plan-card' + (plan.plan === 'STANDARD' ? ' featured' : '');
+            const features = plan.features.map(f => `<li>${f}</li>`).join('');
+            card.innerHTML = `
+                <p class="eyebrow">${plan.plan}</p>
+                <h2 class="headline-md">${plan.name}</h2>
+                <p class="body-sm">${plan.description}</p>
+                <div class="plan-price">$${plan.priceMonthly}<span>/mo</span></div>
+                <ul class="plan-features">${features}</ul>
+                <div class="payment-methods">
+                    <button type="button" class="payment-method-btn selected" data-method="STRIPE">Stripe</button>
+                    <button type="button" class="payment-method-btn" data-method="PAYPAL">PayPal</button>
+                </div>
+                <button class="btn ${plan.plan === 'STANDARD' ? 'btn-primary' : 'btn-ghost'} subscribe-btn" data-plan="${plan.plan}" style="width:100%">
+                    Subscribe
+                </button>`;
+            grid.appendChild(card);
+        });
+
+        grid.querySelectorAll('.payment-method-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                grid.querySelectorAll('.payment-method-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedMethod = btn.dataset.method;
+            });
+        });
+
+        grid.querySelectorAll('.subscribe-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!StreamFlix.getToken()) {
+                    window.location.href = '/register';
+                    return;
+                }
+                try {
+                    await StreamFlix.subscriptions.subscribe(btn.dataset.plan, selectedMethod);
+                    StreamFlix.toast('Subscription activated');
+                    setTimeout(() => window.location.reload(), 1500);
+                } catch (e) {
+                    StreamFlix.toast(e.message);
+                }
+            });
+        });
+    } catch (e) {
+        loading.textContent = 'Failed to load plans: ' + e.message;
+    }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Admin')}"></head>
+<body class="page">
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="page-main">
+    <section class="section">
+        <div class="container">
+            <p class="eyebrow">Operations</p>
+            <h1 class="headline-lg" style="margin-bottom:2rem">Admin Dashboard</h1>
+
+            <div class="metrics-grid" id="metricsGrid">
+                <div class="metric-card"><div class="metric-value" id="mUsers">—</div><div class="metric-label">Users</div></div>
+                <div class="metric-card"><div class="metric-value" id="mVideos">—</div><div class="metric-label">Videos</div></div>
+                <div class="metric-card"><div class="metric-value" id="mSubs">—</div><div class="metric-label">Active Subs</div></div>
+                <div class="metric-card"><div class="metric-value" id="mWatchlist">—</div><div class="metric-label">Watchlist Items</div></div>
+                <div class="metric-card"><div class="metric-value" id="mRevenue">—</div><div class="metric-label">Revenue</div></div>
+            </div>
+
+            <div class="section-header"><span class="section-title">Content Management</span></div>
+            <form id="videoForm" class="admin-form-grid">
+                <div class="form-group full">
+                    <label class="form-label">Title</label>
+                    <input class="form-input" id="vTitle" required>
+                </div>
+                <div class="form-group full">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="vDesc"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Genre</label>
+                    <select class="form-select" id="vGenre">
+                        <option>ACTION</option><option>COMEDY</option><option>HORROR</option>
+                        <option>DRAMA</option><option>SCI_FI</option><option>DOCUMENTARY</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Type</label>
+                    <select class="form-select" id="vType">
+                        <option>MOVIE</option><option>TV_SHOW</option><option>DOCUMENTARY</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Duration (sec)</label>
+                    <input class="form-input" type="number" id="vDuration" value="3600">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Release Year</label>
+                    <input class="form-input" type="number" id="vYear" value="2024">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Age Rating</label>
+                    <select class="form-select" id="vAge">
+                        <option>G</option><option>PG</option><option>PG13</option><option>R</option><option>NC17</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Premium</label>
+                    <select class="form-select" id="vPremium"><option value="false">No</option><option value="true">Yes</option></select>
+                </div>
+                <div class="form-group full">
+                    <label class="form-label">Video URL</label>
+                    <input class="form-input" id="vUrl" placeholder="https://">
+                </div>
+                <div class="form-group full">
+                    <button type="submit" class="btn btn-primary">Add Video</button>
+                </div>
+            </form>
+            <div class="form-error hidden" id="adminError"></div>
+
+            <div class="section-header" style="margin-top:3rem"><span class="section-title">Users</span></div>
+            <table class="data-table">
+                <thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead>
+                <tbody id="usersBody"></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:src="@{/js/main.js}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!StreamFlix.requireAuth()) return;
+    const user = StreamFlix.getUser();
+    if (!user || user.role !== 'ADMIN') {
+        window.location.href = '/';
+        return;
+    }
+    try {
+        const [analytics, users] = await Promise.all([
+            StreamFlix.admin.analytics(),
+            StreamFlix.admin.users()
+        ]);
+        document.getElementById('mUsers').textContent = analytics.totalUsers;
+        document.getElementById('mVideos').textContent = analytics.totalVideos;
+        document.getElementById('mSubs').textContent = analytics.activeSubscribers;
+        document.getElementById('mWatchlist').textContent = analytics.totalWatchlistItems;
+        document.getElementById('mRevenue').textContent = '$' + analytics.totalRevenue;
+
+        const tbody = document.getElementById('usersBody');
+        users.forEach(u => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${u.name}</td><td>${u.email}</td><td>${u.role}</td>`;
+            tbody.appendChild(tr);
+        });
+    } catch (e) {
+        StreamFlix.toast('Admin load failed: ' + e.message);
+    }
+
+    document.getElementById('videoForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const err = document.getElementById('adminError');
+        err.classList.add('hidden');
+        try {
+            await StreamFlix.admin.createVideo({
+                title: document.getElementById('vTitle').value,
+                description: document.getElementById('vDesc').value,
+                genre: document.getElementById('vGenre').value,
+                type: document.getElementById('vType').value,
+                durationSeconds: parseInt(document.getElementById('vDuration').value),
+                releaseYear: parseInt(document.getElementById('vYear').value),
+                ageRating: document.getElementById('vAge').value,
+                isPremium: document.getElementById('vPremium').value === 'true',
+                videoUrl: document.getElementById('vUrl').value || 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+                thumbnailUrl: '/assets/thumbnails/default.svg',
+                rating: 8.0
+            });
+            StreamFlix.toast('Video created');
+            e.target.reset();
+        } catch (ex) {
+            StreamFlix.showError(err, ex.message);
+        }
+    });
+});
+</script>
+</body>
+</html>

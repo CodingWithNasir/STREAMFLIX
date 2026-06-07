@@ -1,5 +1,7 @@
 package com.sdaprojvideostreamingservice.sdaproj.Patterns.composite;
 
-public class contentcomponent {
-    
+import com.sdaprojvideostreamingservice.sdaproj.dto.CategoryNodeDto;
+
+public interface contentcomponent {
+    CategoryNodeDto toNode();
 }

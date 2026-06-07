@@ -1,5 +1,6 @@
 package com.sdaprojvideostreamingservice.sdaproj.Patterns.bridge;
 
-public class Videoquality {
-    
+public interface Videoquality {
+    String getLabel();
+    String applyToUrl(String baseUrl);
 }

@@ -1,5 +1,6 @@
 package com.sdaprojvideostreamingservice.sdaproj.Patterns.command;
 
-public class command {
-    
+public interface command {
+    void execute();
+    String getName();
 }

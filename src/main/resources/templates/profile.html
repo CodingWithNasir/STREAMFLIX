@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Profile')}"></head>
+<body class="page">
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="page-main">
+    <section class="section">
+        <div class="container">
+            <p class="eyebrow">Account</p>
+            <h1 class="headline-lg" style="margin-bottom:2rem">Profile</h1>
+            <div class="profile-grid">
+                <aside class="profile-sidebar" id="profileSidebar">
+                    <div class="profile-avatar" id="profileAvatar">?</div>
+                    <div class="profile-name" id="profileName">—</div>
+                    <div class="profile-email" id="profileEmail">—</div>
+                    <span class="profile-role" id="profileRole">—</span>
+                </aside>
+                <div>
+                    <div class="section-header"><span class="section-title">Edit Profile</span></div>
+                    <form id="profileForm">
+                        <div class="form-group">
+                            <label class="form-label" for="name">Display Name</label>
+                            <input class="form-input" type="text" id="name">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="profileImageUrl">Avatar URL</label>
+                            <input class="form-input" type="url" id="profileImageUrl" placeholder="https://">
+                        </div>
+                        <div class="form-error hidden" id="profileError"></div>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </form>
+
+                    <div style="margin-top:3rem">
+                        <div class="section-header"><span class="section-title">Subscription</span></div>
+                        <div id="subInfo" class="body-sm">Loading…</div>
+                    </div>
+
+                    <div style="margin-top:3rem">
+                        <div class="section-header"><span class="section-title">Payment History</span></div>
+                        <table class="data-table" id="paymentTable">
+                            <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead>
+                            <tbody id="paymentBody"></tbody>
+                        </table>
+                        <p class="body-sm hidden" id="noPayments">No payment history.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:src="@{/js/main.js}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!StreamFlix.requireAuth()) return;
+    try {
+        const [user, sub, payments] = await Promise.all([
+            StreamFlix.users.me(),
+            StreamFlix.subscriptions.current().catch(() => null),
+            StreamFlix.subscriptions.payments().catch(() => [])
+        ]);
+        document.getElementById('profileName').textContent = user.name;
+        document.getElementById('profileEmail').textContent = user.email;
+        document.getElementById('profileRole').textContent = user.role;
+        document.getElementById('profileAvatar').textContent = user.name.charAt(0).toUpperCase();
+        document.getElementById('name').value = user.name;
+        document.getElementById('profileImageUrl').value = user.profileImageUrl || '';
+
+        const subEl = document.getElementById('subInfo');
+        if (sub) {
+            subEl.innerHTML = `<strong>${sub.plan}</strong> · ${sub.status} · Ends ${sub.endDate}`;
+        } else {
+            subEl.innerHTML = 'No active subscription. <a href="/subscription">View plans</a>';
+        }
+
+        const tbody = document.getElementById('paymentBody');
+        if (payments.length) {
+            payments.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${new Date(p.paymentDate).toLocaleDateString()}</td>
+                    <td>$${p.amount} ${p.currency}</td>
+                    <td>${p.paymentMethod}</td><td>${p.status}</td>`;
+                tbody.appendChild(tr);
+            });
+        } else {
+            document.getElementById('paymentTable').classList.add('hidden');
+            document.getElementById('noPayments').classList.remove('hidden');
+        }
+    } catch (e) {
+        StreamFlix.toast('Failed to load profile: ' + e.message);
+    }
+
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const err = document.getElementById('profileError');
+        err.classList.add('hidden');
+        try {
+            const updated = await StreamFlix.users.update({
+                name: document.getElementById('name').value,
+                profileImageUrl: document.getElementById('profileImageUrl').value || null
+            });
+            StreamFlix.setAuth(StreamFlix.getToken(), updated);
+            document.getElementById('profileName').textContent = updated.name;
+            document.getElementById('profileAvatar').textContent = updated.name.charAt(0).toUpperCase();
+            StreamFlix.toast('Profile updated');
+        } catch (ex) {
+            StreamFlix.showError(err, ex.message);
+        }
+    });
+});
+</script>
+</body>
+</html>
